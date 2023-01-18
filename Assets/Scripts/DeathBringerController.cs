@@ -67,10 +67,15 @@ public class DeathBringerController : MonoBehaviour
 
         Chase();
 
-
+       
 
         transform.position = new Vector3(Mathf.Clamp(transform.position.x, moveArea.bounds.min.x + 1, moveArea.bounds.max.x - 1),
         Mathf.Clamp(transform.position.y, moveArea.bounds.min.y + 1, moveArea.bounds.max.y - 1), transform.position.z);
+
+      /*  if (!IsGroundReturn())
+        {
+            ReturnDirection();
+        }*/
     }
 
 
@@ -156,6 +161,33 @@ public class DeathBringerController : MonoBehaviour
 
         return Physics2D.Linecast(fromLeftRay, endPoint, layerMask) || Physics2D.Linecast(fromRightRay, endPoint, layerMask);
     }
+
+    bool IsGroundReturn()
+    {
+        Vector3 startVec = transform.position + transform.right * 0.4f * transform.localScale.x;
+        Vector3 endVec = startVec - transform.up * 0.4f;
+        Debug.DrawLine(startVec, endVec,Color.green);
+        return Physics2D.Linecast(startVec, endVec, layerMask);
+    }
+
+    void ReturnDirection()
+    {
+     if (rb2d.velocity.x > 0)
+        {
+            transform.localScale = new Vector3(-1, 1, 1);
+        }
+        else
+        {
+            transform.localScale = new Vector3(1, 1, 1);
+        }
+
+        
+    }
+
+   
+
+
+
 
     private void OnDrawGizmosSelected()
     {

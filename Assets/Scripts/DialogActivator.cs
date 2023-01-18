@@ -8,6 +8,9 @@ public class DialogActivator : MonoBehaviour
     private string[] lines;
 
     private bool canActivator;
+    List<int> nums = new List<int>(100);
+
+
     void Start()
     {
         
@@ -20,5 +23,11 @@ public class DialogActivator : MonoBehaviour
         {
             GameManager.instance.ShowDialog(lines);
         }
+
+       
+
     }
+
+
+
 }

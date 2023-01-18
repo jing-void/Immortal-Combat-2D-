@@ -5,6 +5,19 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 public class GameManager : MonoBehaviour
 {
+    //TODO. 二段ジャンプの実装
+    //TODO. 敵AIの実装
+    //TODO. 敵を殴った時に止まるバグの修正
+    //TODO. Mainシーンで最初にダイアログを表示
+
+
+
+
+
+
+
+
+
     public static GameManager instance;
 
     [SerializeField]
@@ -35,6 +48,9 @@ public class GameManager : MonoBehaviour
         {
             instance = this;
         }
+
+        WizardHpSlider.gameObject.SetActive(true);
+        BringerHpSlider.gameObject.SetActive(true);
     }
 
     private void Update()
@@ -68,6 +84,9 @@ public class GameManager : MonoBehaviour
 
             Time.timeScale = 0f;            
         }
+
+
+
     }
 
     //HPUIの設定を更新
@@ -112,7 +131,8 @@ public class GameManager : MonoBehaviour
 
     public void RestartGame()
     {
-        SceneManager.LoadScene("WizardScene");
+        Scene scene = SceneManager.GetActiveScene();
+        SceneManager.LoadScene(scene.name);
     }
 
     public void ExitGame()

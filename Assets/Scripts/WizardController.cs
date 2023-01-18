@@ -8,14 +8,14 @@ public class WizardController : MonoBehaviour
     Rigidbody2D rb2d;
     Animator animator;
 
-    
+
     [SerializeField] LayerMask layerMask;
 
-    public float movePower;
+    public float movePower;    
     int direction;
+    int jumpCount = 0;
 
     bool jumpKey;
-    private int moveSpeed;
     public float jumpForce = 200f;
     public float firstSpeed = 16.0f;
     float gravity = 30.0f;
@@ -27,8 +27,8 @@ public class WizardController : MonoBehaviour
     public int hp = 50;
     [System.NonSerialized]
     public int maxHp = 50;
-   
-   public int at = 4;
+
+    public int at = 4;
 
     static readonly float coolTime = 1f;
     float leftCoolTime;
@@ -65,15 +65,14 @@ public class WizardController : MonoBehaviour
 
     void Start()
     {
+        GameManager.instance.UpdateWizardHealthUI();
         controller = GetComponent<WizardController>();
         rb2d = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
 
         leftCoolTime = 0;
 
-        activeMoveSpeed = moveSpeed;
-
-        GameManager.instance.UpdateWizardHealthUI();
+        activeMoveSpeed = movePower;
     }
 
     void Update()
@@ -84,10 +83,10 @@ public class WizardController : MonoBehaviour
             return;
         }
 
-        jumpKey = Input.GetKey(KeyCode.W);
+        jumpKey = Input.GetKeyDown(KeyCode.W);
 
-       
-        
+
+
         if (invincibleTimeCounter > 0)
         {
             invincibleTimeCounter -= Time.deltaTime;
@@ -107,9 +106,9 @@ public class WizardController : MonoBehaviour
                 return;
             }
         }
-        
-             
-        
+
+
+
         leftCoolTime -= Time.deltaTime;
 
         if (leftCoolTime <= 0)
@@ -127,32 +126,28 @@ public class WizardController : MonoBehaviour
 
     void Jump()
     {
-        Vector2 newVec = Vector2.zero;
-
-
-        // 地面についている
-        if (IsGround())
+        // 地面についていてジャンプを１回もしていないとき
+        if (jumpCount < 2)
         {
-
             // Wキーを押したとき
-            if (jumpKey && rb2d.velocity.y >= 0)
+            if (jumpKey)
             {
-                timer = Time.deltaTime;
+                rb2d.AddForce(transform.up * jumpForce);
 
-                newVec.y = firstSpeed;
-                newVec.y -= gravity * timer;
-                // rb2d.AddForce(Vector2.up * jumpForce);
                 animator.SetBool("isJump", true);
 
                 WizardSE.instance.SE(WizardSE.WIZARDSE.JUMP);
+                jumpCount++;
             }
-            else　　// 地面にはついているが、Wキーをおしていないとき
+            else  // 地面にはついているが、Wキーをおしていないとき
             {
                 animator.SetBool("isJump", false);
             }
-            rb2d.velocity = newVec;
         }
     }
+
+
+
     void Run()
     {
         Vector3 moveVelocity = Vector3.zero;
@@ -163,11 +158,15 @@ public class WizardController : MonoBehaviour
             direction = -1;
             moveVelocity = Vector3.left;
 
-            transform.localScale = new Vector3(direction, 1,1);
+            transform.localScale = new Vector3(direction, 1, 1);
             animator.SetBool("isRun", true);
+            if (Input.GetKey(KeyCode.LeftShift))
+            {
+                dashSpeed = activeMoveSpeed * 1.5f;
+            }           
             if (!IsGround())
             {
-                animator.SetBool("isJump",true);
+                animator.SetBool("isJump", true);
             }
         }
         if (Input.GetAxisRaw("Horizontal") > 0)
@@ -175,21 +174,26 @@ public class WizardController : MonoBehaviour
             direction = 1;
             moveVelocity = Vector3.right;
 
-            transform.localScale = new Vector3(direction, 1,1);
+            transform.localScale = new Vector3(direction, 1, 1);
             animator.SetBool("isRun", true);
+            if (Input.GetKey(KeyCode.LeftShift))
+            {
+                dashSpeed = activeMoveSpeed * 1.5f;
+            }
             if (!IsGround())
             {
                 animator.SetBool("isJump", true);
             }
         }
-        transform.position += moveVelocity * movePower * Time.deltaTime;
+        transform.position += moveVelocity * dashSpeed * Time.deltaTime;
+        dashSpeed = movePower;
     }
 
     // アニメーションのイベントで登録済
     void Attack()
     {
         Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(attackPoint.position, attackRadius, enemyLayer);
-        foreach(Collider2D hitEnemy in hitEnemies)
+        foreach (Collider2D hitEnemy in hitEnemies)
         {
             Debug.Log("hit");
             hitEnemy.GetComponent<DeathBringerController>().OnDamage(at);
@@ -206,21 +210,21 @@ public class WizardController : MonoBehaviour
         Gizmos.DrawWireSphere(attackPoint.position, attackRadius);
     }
 
-  
-    
+
+
     public void OnDamage(int damage)
     {
-        if(invincibleTime < 0)
+        if (invincibleTime < 0)
         {
             hp -= Mathf.Clamp(hp - damage, 0, maxHp);
             invincibleTimeCounter = invincibleTime;
 
-            if(hp == 0)
+            if (hp == 0)
             {
                 gameObject.SetActive(false);
             }
         }
-        
+
         GameManager.instance.UpdateWizardHealthUI();
     }
 
@@ -245,15 +249,50 @@ public class WizardController : MonoBehaviour
         Debug.DrawLine(leftStartPoint, endPoint);
         Debug.DrawLine(rightStartPoint, endPoint);
 
-        return Physics2D.Linecast(leftStartPoint, endPoint,layerMask) || Physics2D.Linecast(rightStartPoint,endPoint,layerMask);
-      
+        return Physics2D.Linecast(leftStartPoint, endPoint, layerMask) || Physics2D.Linecast(rightStartPoint, endPoint, layerMask);
+
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.tag == "Ground")
+        {
+            jumpCount = 0;
+            animator.SetBool("isJump", false);
+
+        }
     }
 
     private void OnCollisionStay2D(Collision2D collision)
     {
-        if(rb2d.velocity.y == 0 && collision.gameObject.tag == "Ground")
+        if (rb2d.velocity.y == 0 && collision.gameObject.tag == "Ground")
         {
             timer = 0;
         }
-    }    
+    }
+
+
 }
+
+
+/*
+  int jumpCount = 0;
+
+
+
+// ジャンプをしたタイミングでjumpCountを１にする
+
+  if(Input.getkeydown("keycode.space") && this.jumpCount < 0)
+{
+     jumpCount = 1;
+}
+
+//　地面に接触したときにjumpCountを０に戻す
+
+private void OnCollisionEnter2D(Collision2D collision)
+{
+  if (collision.gameObject.tag == "Ground")
+  {
+      jumpCount = 0;
+  }
+  */
